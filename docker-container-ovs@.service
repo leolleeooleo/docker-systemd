@@ -1,0 +1,18 @@
+[Unit]
+Description=Docker container - %i
+After=docker.service openvswitch.service
+Requires=docker.service
+Requires=openvswitch.service
+
+[Service]
+#TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+Type=simple
+#NotifyAccess=all
+EnvironmentFile=/etc/systemd/system/docker-container/%i.conf
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm -d --name systemd-%i ${DOCKER} && /usr/local/bin/docker-container-ovs systemd-%i start ; /usr/bin/docker logs -f systemd-%i"
+ExecStop=/bin/sh -c "/usr/local/bin/docker-container-ovs systemd-%i stop ; /usr/bin/docker container stop systemd-%i"
+
+[Install]
+WantedBy=multi-user.target

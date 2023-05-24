@@ -1,0 +1,54 @@
+#!/bin/bash
+
+CONTAINER=$1
+RUN=$2
+
+for NUM in {0..100}
+do
+    OVSBR=$(eval echo \$OVSBR$NUM)
+    OVSIF=$(eval echo \$OVSIF$NUM)
+    IPADDR=$(eval echo \$IPADDR$NUM)
+    GATEWAY=$(eval echo \$GATEWAY$NUM)
+    MACADDR=$(eval echo \$MACADDR$NUM)
+    VLAN=$(eval echo \$VLAN$NUM)
+
+    if [ -z "${OVSIF}" ] || [ "${OVSIF}" == "" ]
+    then
+        echo "no device"
+        break
+    fi
+
+    [ ! -z "${IPADDR}" ] && [ "${IPADDR}" != "" ] && IPADDR="--ipaddress=${IPADDR}"
+    [ ! -z "${GATEWAY}" ] && [ "${GATEWAY}" != "" ] && GATEWAY="--gateway=${GATEWAY}"
+    [ ! -z "${MACADDR}" ] && [ "${MACADDR}" != "" ] && MACADDR="--macaddress=${MACADDR}"
+
+    case "${RUN}" in
+        "start")
+            [ ! -z "${OVSIF}" ] && [ "${OVSIF}" != "" ] && /usr/bin/ovs-docker del-port ${OVSBR} ${OVSIF} ${CONTAINER} 2> /dev/null
+            [ ! -z "${OVSIF}" ] && [ "${OVSIF}" != "" ] && /usr/bin/ovs-docker add-port ${OVSBR} ${OVSIF} ${CONTAINER} ${IPADDR} ${GATEWAY} ${MACADDR}
+            [ ! -z "${VLAN}" ] && [ "${VLAN}" != "" ] && /usr/bin/ovs-docker set-vlan ${OVSBR} ${OVSIF} ${CONTAINER} ${VLAN}
+            ;;
+        "stop")
+            [ ! -z "${OVSIF}" ] && [ "${OVSIF}" != "" ] && /usr/bin/ovs-docker del-port ${OVSBR} ${OVSIF} ${CONTAINER}
+            ;;
+    esac
+done
+for NUM in {0..100}
+do
+    PIPEWORK=$(eval echo \$PIPEWORK$NUM)
+
+    if [ -z "${PIPEWORK}" ] || [ "${PIPEWORK}" == "" ]
+    then
+        echo "no more pipework"
+        break
+    fi
+
+    case "${RUN}" in
+        "start")
+            if [[ "${PIPEWORK}" == *"%s"* ]]; then
+                /usr/local/bin/pipework $(printf "${PIPEWORK}" "${CONTAINER}")
+            else
+                /usr/local/bin/pipework ${PIPEWORK}
+            fi
+    esac
+done
